@@ -1,0 +1,646 @@
+<?php
+
+function cablecast_install() {
+
+  $t = get_t();
+
+  // set up categories taxonomy
+  $categories_vocab = new stdClass();
+  $categories_vocab->name = $t('Cablecast Categories');
+  $categories_vocab->machine_name = 'cablecast_categories';
+  $categories_vocab->description = $t('Categories used to classify shows on the Cablecast Server.');
+  $categories_vocab->hierarchy = 0;
+  $categories_vocab->module = 'cablecast';
+  taxonomy_vocabulary_save($categories_vocab);
+
+  variable_set('cablecast_categories_vid', $categories_vocab->vid);
+
+  node_types_rebuild();
+
+  $types = node_type_get_types();
+  $cablecast_show = $types['cablecast_show'];
+  $cablecast_project = $types['cablecast_project'];
+  $cablecast_channel = $types['cablecast_channel'];
+  $cablecast_schedule_item = $types['cablecast_schedule_item'];
+
+  //We add a body field and set the body label immediately.
+  node_add_body_field($cablecast_show, $t('Body'));
+  node_add_body_field($cablecast_project, $t('Body'));
+
+  // Save the content type
+  node_type_save($cablecast_show);
+  node_type_save($cablecast_project);
+  
+  _cablecast_create_fields_and_instances();
+  
+}
+/**
+  Install Producer Field
+*/
+function cablecast_update_7101() {
+  _cablecast_create_fields_and_instances();
+}
+
+function cablecast_uninstall() {
+
+  $categories_vid = variable_get('cablecast_categories_vid', false);
+  if($categories_vid) {
+    taxonomy_vocabulary_delete($categories_vid);
+  }
+
+  // Gather all the example content that might have been created while this
+  // module was enabled.  Simple selects still use db_query().
+  // http://api.drupal.org/api/function/db_query/7
+
+  $nids = array();
+
+  // Delete all the shows
+  $sql = 'SELECT nid FROM {node} n WHERE n.type = :type';
+  $result = db_query($sql, array(':type' => 'cablecast_show'));
+  
+  foreach ($result as $row) {
+    $nids[] = $row->nid;
+  }
+
+  // Delete all the projects
+  $sql = 'SELECT nid FROM {node} n WHERE n.type = :type';
+  $result = db_query($sql, array(':type' => 'cablecast_project'));
+  
+  foreach ($result as $row) {
+    $nids[] = $row->nid;
+  }
+
+  // Delete all the channels
+  $sql = 'SELECT nid FROM {node} n WHERE n.type = :type';
+  $result = db_query($sql, array(':type' => 'cablecast_channel'));
+  
+  foreach ($result as $row) {
+    $nids[] = $row->nid;
+  }
+
+  // Delete all the schedule items
+  $sql = 'SELECT nid FROM {node} n WHERE n.type = :type';
+  $result = db_query($sql, array(':type' => 'cablecast_schedule_item'));
+  
+  foreach ($result as $row) {
+    $nids[] = $row->nid;
+  }
+
+  // Delete all the nodes at once
+  // http://api.drupal.org/api/function/node_delete_multiple/7
+  node_delete_multiple($nids);
+
+  // Loop over each of the fields defined by this module and delete
+  // all instances of the field, their data, and the field itself.
+  // http://api.drupal.org/api/function/field_delete_field/7
+  foreach (array_keys(_cablecast_installed_fields()) as $field) {
+    field_delete_field($field);
+  }
+
+  // Loop over any remaining field instances attached to the node_example
+  // content type (such as the body field) and delete them individually.
+  // http://api.drupal.org/api/function/field_delete_field/7
+  $instances = field_info_instances('node', 'cablecast_show');
+  foreach ($instances as $instance_name => $instance) {
+    field_delete_instance($instance);
+  }
+
+  $instances = field_info_instances('node', 'cablecast_project');
+  foreach ($instances as $instance_name => $instance) {
+    field_delete_instance($instance);
+  }
+
+  $instances = field_info_instances('node', 'cablecast_channel');
+  foreach ($instances as $instance_name => $instance) {
+    field_delete_instance($instance);
+  }
+
+  $instances = field_info_instances('node', 'cablecast_schedule_item');
+  foreach ($instances as $instance_name => $instance) {
+    field_delete_instance($instance);
+  }
+  // Purge all field infromation
+  // http://api.drupal.org/api/function/field_purge_batch/7
+  field_purge_batch(1000);
+}
+
+function _cablecast_create_fields_and_instances() {
+  // Create all the fields we are adding to our content type.
+  // http://api.drupal.org/api/function/field_create_field/7
+  
+  foreach (_cablecast_installed_fields() as $field) {
+    if (field_info_field($field['field_name']) == NULL) {
+      field_create_field($field);
+    }
+  }
+
+  // Create all the instances for our fields.
+  // http://api.drupal.org/api/function/field_create_instance/7
+  foreach (_cablecast_installed_show_instances() as $instance) {
+    $instance['entity_type'] = 'node';
+    $instance['bundle'] = 'cablecast_show';
+    if (field_info_instance('node', $instance['field_name'], 'cablecast_show') == NULL) {
+      field_create_instance($instance);
+    }
+  }
+
+  foreach(_cablecast_installed_project_instances() as $instance) {
+    $instance['entity_type'] = 'node';
+    $instance['bundle'] = 'cablecast_project';
+    if (field_info_instance('node', $instance['field_name'], 'cablecast_project') == NULL) {
+      field_create_instance($instance);
+    }
+  }
+
+  foreach(_cablecast_installed_channel_instances() as $instance) {
+    $instance['entity_type'] = 'node';
+    $instance['bundle'] = 'cablecast_channel';
+    if (field_info_instance('node', $instance['field_name'], 'cablecast_channel') == NULL) {
+      field_create_instance($instance);
+    }
+  }
+
+  foreach(_cablecast_installed_schedule_item_instances() as $instance) {
+    $instance['entity_type'] = 'node';
+    $instance['bundle'] = 'cablecast_schedule_item';
+    if (field_info_instance('node', $instance['field_name'], 'cablecast_schedule_item') == NULL) {
+      field_create_instance($instance);
+    }
+  }
+}
+
+function _cablecast_installed_fields() {
+  $t = get_t();
+  return array(
+    //  Show Record Fields
+    'cablecast_show_id' => array(
+      'field_name' => 'cablecast_show_id',
+      'cardinality' => 1,
+      'type' => 'number_integer',
+    ),
+    'cablecast_show_local_id' => array(
+      'field_name' => 'cablecast_show_local_id',
+      'cardinality' => 1,
+      'type'        => 'text',
+    ),
+     'cc_show_location_name' => array(
+      'field_name' => 'cc_show_location_name',
+      'cardinality' => 1,
+      'type'        => 'text',
+    ),
+   'cablecast_show_title' => array(
+      'field_name' => 'cablecast_show_title',
+      'cardinality' => 1,
+      'type' => 'text',
+    ),
+    'cablecast_show_cg_title' => array(
+      'field_name' => 'cablecast_show_cg_title',
+      'cardinality' => 1,
+      'type'        => 'text',
+    ),
+    'cablecast_show_cg_exempt' => array(
+      'field_name' => 'cablecast_show_cg_exempt',
+      'cardinality' => 1,
+      'type' => 'list_boolean',
+      'settings' => array(
+        'allowed_values' => array(0 => 0, 1 => 1),
+      ),
+    ),
+    'cablecast_show_comments' => array(
+      'field_name'  => 'cablecast_show_comments',
+      'cardinality' => 1,
+      'type'        => 'text_long',
+    ),
+    'cablecast_show_event_date' => array(
+      'field_name' => 'cablecast_show_event_date',
+      'cardinality' => 1,
+      'type' => 'date',
+    ),
+    'cablecast_show_last_modified' => array(
+      'field_name' => 'cablecast_show_last_modified',
+      'cardinality' => 1,
+      'type' => 'date'
+    ),
+    'cablecast_show_trt' => array(
+      'field_name' => 'cablecast_show_trt',
+      'cardinality' => 1,
+      'type' => 'number_integer',
+    ),
+    'cablecast_show_vod_url' => array(
+      'field_name' => 'cablecast_show_vod_url',
+      'cardinality' => 1,
+      'type' => 'text',
+    ),
+    'cablecast_show_producer' => array(
+      'field_name' => 'cablecast_show_producer',
+      'cardinality' => 1,
+      'type' => 'text',
+    ),
+    
+    // Project Fields
+    'cablecast_project_id' => array(
+      'field_name' => 'cablecast_project_id',
+      'cardinality' => 1,
+      'type' => 'number_integer',
+    ),
+    'cablecast_project_name' => array(
+      'field_name' => 'cablecast_project_name',
+      'cardinality' => 1,
+      'type' => 'text',
+    ),
+    'cablecast_project_description' => array(
+      'field_name' => 'cablecast_project_description',
+      'cardinality' => 1,
+      'type' => 'text_long',
+    ),
+      'cc_project_location_name' => array(
+      'field_name' => 'cc_project_location_name',
+      'cardinality' => 1,
+      'type'        => 'text',
+    ),
+   //Ignoring all the podcast stuff for project
+
+    //Channel Fields
+    'cablecast_channel_id' => array(
+      'field_name' => 'cablecast_channel_id',
+      'cardinality' => 1,
+      'type' => 'number_integer',
+    ),
+    'cablecast_channel_name' => array(
+      'field_name' => 'cablecast_channel_name',
+      'cardinality' => 1,
+      'type' => 'text',
+    ),
+     'cc_channel_location_name' => array(
+      'field_name' => 'cc_channel_location_name',
+      'cardinality' => 1,
+      'type'        => 'text',
+    ),
+
+    //Schedule Item Fields
+    'cablecast_schedule_item_id' => array(
+      'field_name' => 'cablecast_schedule_item_id',
+      'cardinality' => 1,
+      'type' => 'number_integer',
+    ),
+    'cablecast_schedule_start_time' => array(
+      'field_name' => 'cablecast_schedule_start_time',
+      'cardinality' => 1,
+      'settings' => array(
+        'cache_count' => '4',
+        'cache_enabled' => 0,
+        'granularity' => array(
+          'day' => 'day',
+          'hour' => 'hour',
+          'minute' => 'minute',
+          'month' => 'month',
+          'second' => 'second',
+          'year' => 'year',
+        ),
+        'timezone_db' => 'UTC',
+        'todate' => '',
+        'tz_handling' => 'site',
+      ),
+      'translatable' => '0',
+      'type' => 'date',
+    ),
+    'cablecast_schedule_end_date_time' => array(
+      'field_name' => 'cablecast_schedule_end_time',
+      'cardinality' => 1,
+      'settings' => array(
+        'cache_count' => '4',
+        'cache_enabled' => 0,
+        'granularity' => array(
+          'day' => 'day',
+          'hour' => 'hour',
+          'minute' => 'minute',
+          'month' => 'month',
+          'second' => 'second',
+          'year' => 'year',
+        ),
+        'timezone_db' => 'UTC',
+        'todate' => '',
+        'tz_handling' => 'site',
+      ),
+      'translatable' => '0',
+      'type' => 'date',
+    ),
+    'cablecast_schedule_channel_id' => array(
+      'field_name' => 'cablecast_schedule_channel_id',
+      'cardinality' => 1,
+      'type' => 'number_integer',
+    ),
+    'cablecast_schedule_show_id' => array(
+      'field_name' => 'cablecast_schedule_show_id',
+      'cardinality' => 1,
+      'type' => 'number_integer',
+    ),
+     'cc_schedule_location_name' => array(
+      'field_name' => 'cc_schedule_location_name',
+      'cardinality' => 1,
+      'type'        => 'text',
+    ),
+    
+    //Taxonomy
+    'cablecast_category' => array(
+      'field_name' => 'cablecast_category',
+      'type' => 'taxonomy_term_reference',
+      'cardinality' => 1,
+      'settings' => array(
+        'allowed_values' => array(
+          array(
+            'vocabulary' => 'cablecast_categories',
+            'parent' => 0,
+          ),
+        ),
+      ),
+    ),
+
+    //Reference fields
+    'cablecast_project_reference' => array(
+      'field_name' => 'cablecast_project_reference',
+      'type' => 'entityreference',
+      'cardinality' => 1,
+      'settings' => array(
+        'target_type' => 'node',
+        'handler_settings' => array('target_bundles' => array('cablecast_project'))
+      ),
+    ),
+    'cablecast_show_reference' => array(
+      'field_name' => 'cablecast_show_reference',
+      'type' => 'entityreference',
+      'cardinality' => 1,
+      'settings' => array(
+        'target_type' => 'node',
+        'handler_settings' => array('target_bundles' => array('cablecast_show'))
+      ),
+    ),
+    'cablecast_channel_reference' => array(
+      'field_name' => 'cablecast_channel_reference',
+      'type' => 'entityreference',
+      'cardinality' => 1,
+      'settings' => array(
+        'target_type' => 'node',
+        'handler_settings' => array('target_bundles' => array('cablecast_channel'))
+      ),
+    ),
+  );
+}
+
+function _cablecast_installed_show_instances() {
+  $t = get_t();
+  return array(
+    'cablecast_show_id' => array(
+      'field_name' => 'cablecast_show_id',
+      'label' => 'Show ID',
+      'widget' => array(
+        'type' => 'number',
+      ),
+    ),
+    'cablecast_show_local_id' => array(
+      'field_name' => 'cablecast_show_local_id',
+      'label'       => $t('Local ID'),
+      'widget'      => array(
+        'type'    => 'text_textfield',
+      ),
+    ),
+    'cablecast_show_title' => array(
+      'field_name' => 'cablecast_show_title',
+      'label' => 'Show Title',
+      'widget' => array(
+        'type' => 'text_textfield',
+      ),
+    ),
+    'cablecast_show_producer' => array(
+      'field_name' => 'cablecast_show_producer',
+      'label' => 'Producer',
+      'widget' => array(
+        'type' => 'text_textfield',
+      ),
+    ),
+    'cablecast_show_cg_title' => array(
+      'field_name' => 'cablecast_show_cg_title',
+      'label'       => $t('CG Title'),
+      'widget'      => array(
+        'type'    => 'text_textfield',
+      ),
+    ),
+    'cablecast_show_cg_exempt' => array(
+      'field_name' => 'cablecast_show_cg_exempt',
+      'label'       => $t('CG Exempt'),
+      'widget'      => array(
+        'type'    => 'options_onoff',
+        'settings' => array('display_label' => 1),
+      ),
+    ),
+    'cablecast_show_comments' => array(
+      'field_name'  => 'cablecast_show_comments',
+      'label' => $t('Comments'),
+      'widget'      => array(
+        'type'    => 'text_textarea',
+      ),
+    ),
+    'cablecast_show_event_date' => array(
+      'field_name' => 'cablecast_show_event_date',
+      'label' => $t('Event Date'),
+      'type' => 'date',
+      'widget' => array(
+        'type' => 'date_text',
+      ),
+    ),
+    'cablecast_show_last_modified' => array(
+      'field_name' => 'cablecast_show_last_modified',
+      'label' => $t('Last Modified'),
+      'type' => 'date',
+      'widget' => array(
+        'type' => 'date_text',
+      ),
+    ),
+    'cablecast_show_trt' => array(
+      'field_name' => 'cablecast_show_trt',
+      'label' => $t('Total Run Time'),
+      'widget' => array(
+        'type' => 'number',
+      ),
+    ),
+    'cablecast_show_vod_url' => array(
+      'field_name' => 'cablecast_show_vod_url',
+      'label' => $t('VOD Url'),
+      'widget' => array(
+        'type' => 'text_textfield',
+      ),
+    ),
+    'cc_show_location_name' => array(
+      'field_name' => 'cc_show_location_name',
+      'label' => 'Show Location Name',
+      'widget' => array(
+        'type' => 'text_textfield',
+      ),
+    ),
+    // Taxonomy
+    'cablecast_category' => array(
+      'field_name' => 'cablecast_category',
+      'entity_type' => 'node',
+      'label' => $t('Category'),
+      'bundle' => 'cablecast_show',
+      'required' => FALSE,
+      'widget' => array(
+        'type' => 'options_select',
+      ),
+    ),
+
+    //Reference Fields
+    'cablecast_project_reference' => array(
+      'field_name' => 'cablecast_project_reference',
+      'entity_type' => 'node',
+      'bundle' => 'cablecast_show',
+      'label' => 'Project',
+      'widget' => array(
+        'type' => 'options_select'
+      ),
+      'settings' => array(
+        'target_type' => 'node',
+        'handler_settings' => array('target_bundles' => 'cablecast_project'),
+      ),
+    ),
+  );
+}
+
+function _cablecast_installed_project_instances() {
+  $t = get_t();
+  return array(
+    'cablecast_project_id' => array(
+      'field_name' => 'cablecast_project_id',
+      'label' => 'Project ID',
+      'widget' => array(
+        'type' => 'number',
+      ),
+    ),
+    'cablecast_project_name' => array(
+      'field_name' => 'cablecast_project_name',
+      'label' => 'Project Name',
+      'widget' => array(
+        'type' => 'text_textfield',
+      ),
+    ),
+    'cc_project_location_name' => array(
+      'field_name' => 'cc_project_location_name',
+      'label' => 'Project Location Name',
+      'widget' => array(
+        'type' => 'text_textfield',
+      ),
+    ),
+    'cablecast_project_description' => array(
+      'field_name' => 'cablecast_project_description',
+      'label' => 'Project Description',
+      'widget' => array(
+        'type' => 'text_textarea',
+      ),
+    ), 
+  );
+}
+
+function _cablecast_installed_channel_instances() {
+  $t = get_t();
+  return array(
+    'cablecast_channel_id' => array(
+      'field_name' => 'cablecast_channel_id',
+      'label' => 'Channel ID',
+      'widget' => array(
+        'type' => 'number',
+      ),
+    ),
+     'cc_channel_location_name' => array(
+      'field_name' => 'cc_channel_location_name',
+      'label' => 'Channel Location Name',
+      'widget' => array(
+        'type' => 'text_textfield',
+      ),
+    ),
+   'cablecast_channel_name' => array(
+      'field_name' => 'cablecast_channel_name',
+      'label' => 'Channel Name',
+      'widget' => array(
+        'type' => 'text_textfield',
+      ),
+    ),
+  );
+}
+
+function _cablecast_installed_schedule_item_instances() {
+  $t = get_t();
+  return array(
+    'cablecast_schedule_item_id' => array(
+      'field_name' => 'cablecast_schedule_item_id',
+      'label' => 'Schedule Item ID',
+      'widget' => array(
+        'type' => 'number',
+      ),
+    ),
+    'cablecast_schedule_start_time' => array(
+      'field_name' => 'cablecast_schedule_start_time',
+      'label' => $t('Start Time'),
+      'type' => 'date',
+      'widget' => array(
+        'type' => 'date_text',
+      ),
+    ),
+    'cablecast_schedule_end_time' => array(
+      'field_name' => 'cablecast_schedule_end_time',
+      'label' => $t('End Time'),
+      'type' => 'date',
+      'widget' => array(
+        'type' => 'date_text',
+      ),
+    ),
+    'cablecast_schedule_show_id' => array(
+      'field_name' => 'cablecast_schedule_show_id',
+      'label' => $t('Show ID'),
+      'widget' => array(
+        'type' => 'number',
+      ),
+    ),
+    'cablecast_schedule_channel_id' => array(
+      'field_name' => 'cablecast_schedule_channel_id',
+      'label' => $t('Channel ID'),
+      'widget' => array(
+        'type' => 'number',
+      ),
+    ),
+    'cc_schedule_location_name' => array(
+      'field_name' => 'cc_schedule_location_name',
+      'label' => 'Schedule Location Name',
+      'widget' => array(
+        'type' => 'text_textfield',
+      ),
+    ),
+    //Reference Fields
+    'cablecast_channel_reference' => array(
+      'field_name' => 'cablecast_channel_reference',
+      'entity_type' => 'node',
+      'bundle' => 'cablecast_channel',
+      'label' => 'Channel',
+      'widget' => array(
+        'type' => 'options_select'
+      ),
+      'settings' => array(
+        'target_type' => 'node',
+        'handler_settings' => array('target_bundles' => 'cablecast_channel'),
+      ),
+    ),
+    //Reference Fields
+    'cablecast_show_reference' => array(
+      'field_name' => 'cablecast_show_reference',
+      'entity_type' => 'node',
+      'bundle' => 'cablecast_show',
+      'label' => 'Show',
+      'widget' => array(
+        'type' => 'options_select'
+      ),
+      'settings' => array(
+        'target_type' => 'node',
+        'handler_settings' => array('target_bundles' => 'cablecast_show'),
+      ),
+    ),
+  );
+}

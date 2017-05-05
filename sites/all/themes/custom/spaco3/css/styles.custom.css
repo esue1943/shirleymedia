@@ -1,0 +1,390 @@
+/* apply a natural box layout model to all elements, but allowing components to change - from Paul Irish article*/
+@media -sass-debug-info{filename{font-family:file\:\/\/H\:\/Xampp5_6_15\/htdocs\/shirleymedia\/sites\/all\/themes\/custom\/spaco3\/sass\/styles\.custom\.scss}line{font-family:\0000316}}
+body {
+  background-color: #000000;
+  background-image: linear-gradient(to bottom, #9cbdd3 0px, #4f89b0 481px, #264254 1050px);
+  background-repeat: no-repeat;
+  background-attachment: fixed !important;
+}
+
+@media -sass-debug-info{filename{font-family:file\:\/\/H\:\/Xampp5_6_15\/htdocs\/shirleymedia\/sites\/all\/themes\/custom\/spaco3\/sass\/styles\.custom\.scss}line{font-family:\0000325}}
+#pe-page-wrapper {
+  background-color: white;
+  max-width: 1140px;
+  margin: 0px auto;
+}
+
+@media -sass-debug-info{filename{font-family:file\:\/\/H\:\/Xampp5_6_15\/htdocs\/shirleymedia\/sites\/all\/themes\/custom\/spaco3\/sass\/styles\.custom\.scss}line{font-family:\0000341}}
+#pe-menu-bar-region-wrapper {
+  margin: 20px auto 0px;
+  max-width: 1140px;
+  background-color: #000000;
+}
+
+@media -sass-debug-info{filename{font-family:file\:\/\/H\:\/Xampp5_6_15\/htdocs\/shirleymedia\/sites\/all\/themes\/custom\/spaco3\/sass\/styles\.custom\.scss}line{font-family:\0000351}}
+#pe-spaco-header {
+  margin: 0px auto -10px;
+  max-width: 1140px;
+}
+
+@media -sass-debug-info{filename{font-family:file\:\/\/H\:\/Xampp5_6_15\/htdocs\/shirleymedia\/sites\/all\/themes\/custom\/spaco3\/sass\/styles\.custom\.scss}line{font-family:\0000361}}
+#pe-main-content-region-wrapper {
+  margin: auto;
+  max-width: 1140px;
+  background-color: white;
+  padding-top: 10px;
+}
+
+@media -sass-debug-info{filename{font-family:file\:\/\/H\:\/Xampp5_6_15\/htdocs\/shirleymedia\/sites\/all\/themes\/custom\/spaco3\/sass\/styles\.custom\.scss}line{font-family:\0000379}}
+#pe-footer-copyright {
+  margin: 0px auto;
+  max-width: 1140px;
+  background-color: #1c313f;
+  color: #b0ccd4;
+}
+
+@media -sass-debug-info{filename{font-family:file\:\/\/H\:\/Xampp5_6_15\/htdocs\/shirleymedia\/sites\/all\/themes\/custom\/spaco3\/sass\/styles\.custom\.scss}line{font-family:\0000386}}
+#pe-footer-copyright h6 {
+  font-size: .8em;
+  margin: 0px;
+}
+
+@media -sass-debug-info{filename{font-family:file\:\/\/H\:\/Xampp5_6_15\/htdocs\/shirleymedia\/sites\/all\/themes\/custom\/spaco3\/sass\/styles\.custom\.scss}line{font-family:\0000397}}
+#pe-front-page-node-body {
+  background: white;
+  box-shadow: 0 0 2px 1px rgba(0, 0, 0, 0.2);
+  border: 1px solid transparent;
+  margin: 5px 0px 5px 10px;
+}
+
+@media -sass-debug-info{filename{font-family:file\:\/\/H\:\/Xampp5_6_15\/htdocs\/shirleymedia\/sites\/all\/themes\/custom\/spaco3\/sass\/styles\.custom\.scss}line{font-family:\00003104}}
+#pe-front-page-node-body .pane-content {
+  padding: 5px;
+}
+
+@media -sass-debug-info{filename{font-family:file\:\/\/H\:\/Xampp5_6_15\/htdocs\/shirleymedia\/sites\/all\/themes\/custom\/spaco3\/sass\/styles\.custom\.scss}line{font-family:\00003108}}
+#pe-front-page-node-body h2 {
+  color: darkslateblue;
+  background-color: rgba(188, 210, 225, 0.5);
+  border-radius: 4px 4px 0 0;
+  padding: 8px 30px;
+  margin: 0 auto 5px;
+}
+
+@media -sass-debug-info{filename{font-family:file\:\/\/H\:\/Xampp5_6_15\/htdocs\/shirleymedia\/sites\/all\/themes\/custom\/spaco3\/sass\/styles\.custom\.scss}line{font-family:\00003116}}
+#pe-support-region-wrapper {
+  background: #F8FBFB;
+  box-shadow: 0 0 2px 1px rgba(0, 0, 0, 0.2);
+  border: 1px solid transparent;
+  margin: 0px 5px 5px 5px;
+  padding-bottom: 5px;
+}
+
+@media -sass-debug-info{filename{font-family:file\:\/\/H\:\/Xampp5_6_15\/htdocs\/shirleymedia\/sites\/all\/themes\/custom\/spaco3\/sass\/styles\.custom\.scss}line{font-family:\00003124}}
+#pe-support-region-wrapper h2 {
+  color: #22383f;
+  background-color: #cedfe4;
+  border-radius: 4px 4px 0 0;
+  padding: 8px 10px;
+  margin: 0 auto 5px;
+}
+
+@media -sass-debug-info{filename{font-family:file\:\/\/H\:\/Xampp5_6_15\/htdocs\/shirleymedia\/sites\/all\/themes\/custom\/spaco3\/sass\/styles\.custom\.scss}line{font-family:\00003132}}
+#pe-underwriters-region-wrapper {
+  background: #F8FBFB;
+  box-shadow: 0 0 2px 1px rgba(0, 0, 0, 0.2);
+  border: 1px solid transparent;
+  margin: 5px;
+}
+
+@media -sass-debug-info{filename{font-family:file\:\/\/H\:\/Xampp5_6_15\/htdocs\/shirleymedia\/sites\/all\/themes\/custom\/spaco3\/sass\/styles\.custom\.scss}line{font-family:\00003139}}
+#pe-underwriters-region-wrapper h2 {
+  color: #22383f;
+  background-color: #cedfe4;
+  border-radius: 4px 4px 0 0;
+  padding: 8px 10px;
+  margin: 0 auto 5px;
+}
+
+@media -sass-debug-info{filename{font-family:file\:\/\/H\:\/Xampp5_6_15\/htdocs\/shirleymedia\/sites\/all\/themes\/custom\/spaco3\/sass\/styles\.custom\.scss}line{font-family:\00003153}}
+#pe-bod-region-wrapper {
+  box-shadow: 0 0 2px 1px rgba(0, 0, 0, 0.2);
+  border: 1px solid transparent;
+  margin: 0px 0px 5px 5px;
+}
+
+@media -sass-debug-info{filename{font-family:file\:\/\/H\:\/Xampp5_6_15\/htdocs\/shirleymedia\/sites\/all\/themes\/custom\/spaco3\/sass\/styles\.custom\.scss}line{font-family:\00003159}}
+#pe-bod-region-wrapper h2 {
+  text-align: center;
+  color: #22383f;
+  background-color: #cedfe4;
+  border-radius: 4px 4px 0 0;
+  padding: 8px 10px;
+  margin: 0 auto 5px;
+}
+
+@media -sass-debug-info{filename{font-family:file\:\/\/H\:\/Xampp5_6_15\/htdocs\/shirleymedia\/sites\/all\/themes\/custom\/spaco3\/sass\/styles\.custom\.scss}line{font-family:\00003168}}
+.bod-body {
+  box-shadow: 0 0 2px 1px rgba(0, 0, 0, 0.2);
+  border: 1px solid transparent;
+  margin: 5px 5px 15px;
+  padding: 5px;
+}
+
+@media -sass-debug-info{filename{font-family:file\:\/\/H\:\/Xampp5_6_15\/htdocs\/shirleymedia\/sites\/all\/themes\/custom\/spaco3\/sass\/styles\.custom\.scss}line{font-family:\00003180}}
+.pe-basic-page-center-region {
+  box-shadow: 0 0 2px 1px rgba(0, 0, 0, 0.2);
+  border: 1px solid transparent;
+  margin: 0px 0px 0px 5px;
+}
+
+@media -sass-debug-info{filename{font-family:file\:\/\/H\:\/Xampp5_6_15\/htdocs\/shirleymedia\/sites\/all\/themes\/custom\/spaco3\/sass\/styles\.custom\.scss}line{font-family:\00003186}}
+#pe-node-title {
+  margin-right: -6px;
+}
+
+@media -sass-debug-info{filename{font-family:file\:\/\/H\:\/Xampp5_6_15\/htdocs\/shirleymedia\/sites\/all\/themes\/custom\/spaco3\/sass\/styles\.custom\.scss}line{font-family:\00003190}}
+#pe-node-title h2 {
+  text-align: center;
+  color: darkslateblue;
+  background-color: rgba(188, 210, 225, 0.5);
+  border-radius: 4px 4px 0 0;
+  padding: 8px 30px;
+  margin: 0 auto 5px;
+}
+
+@media -sass-debug-info{filename{font-family:file\:\/\/H\:\/Xampp5_6_15\/htdocs\/shirleymedia\/sites\/all\/themes\/custom\/spaco3\/sass\/styles\.custom\.scss}line{font-family:\00003199}}
+#pe-node-body {
+  margin: -20px 10px 10px;
+}
+
+@media -sass-debug-info{filename{font-family:file\:\/\/H\:\/Xampp5_6_15\/htdocs\/shirleymedia\/sites\/all\/themes\/custom\/spaco3\/sass\/styles\.custom\.scss}line{font-family:\00003205}}
+#pe-recent-shows-region-wrapper {
+  background: #F8FBFB;
+  box-shadow: 0 0 2px 1px rgba(0, 0, 0, 0.2);
+  border: 1px solid transparent;
+  margin: 0px 0px 0px 10px;
+}
+
+@media -sass-debug-info{filename{font-family:file\:\/\/H\:\/Xampp5_6_15\/htdocs\/shirleymedia\/sites\/all\/themes\/custom\/spaco3\/sass\/styles\.custom\.scss}line{font-family:\00003212}}
+#pe-recent-shows-region-wrapper h2 {
+  text-align: center;
+  color: darkslateblue;
+  background-color: rgba(188, 210, 225, 0.5);
+  border-radius: 4px 4px 0 0;
+  padding: 8px 30px;
+  margin: 0 auto 5px;
+}
+
+@media -sass-debug-info{filename{font-family:file\:\/\/H\:\/Xampp5_6_15\/htdocs\/shirleymedia\/sites\/all\/themes\/custom\/spaco3\/sass\/styles\.custom\.scss}line{font-family:\00003227}}
+#pe-schedule-menu-wrapper {
+  max-width: 1140px;
+  background: white;
+  margin: 0 10px 5px;
+  box-shadow: 0 0 2px 1px rgba(0, 0, 0, 0.2);
+  border: 1px solid transparent;
+  margin: 10px 5px 5px 5px;
+  padding-bottom: 5px;
+}
+
+@media -sass-debug-info{filename{font-family:file\:\/\/H\:\/Xampp5_6_15\/htdocs\/shirleymedia\/sites\/all\/themes\/custom\/spaco3\/sass\/styles\.custom\.scss}line{font-family:\00003237}}
+#pe-schedule-menu-wrapper h2 {
+  color: darkslateblue;
+  text-align: center;
+  background-color: rgba(188, 210, 225, 0.5);
+  border-radius: 4px 4px 0 0;
+  padding: 8px 30px;
+  margin: 0 auto 10px;
+}
+
+@media -sass-debug-info{filename{font-family:file\:\/\/H\:\/Xampp5_6_15\/htdocs\/shirleymedia\/sites\/all\/themes\/custom\/spaco3\/sass\/styles\.custom\.scss}line{font-family:\00003246}}
+#pe-schedule-menu-wrapper a {
+  font-size: 1.3em;
+  text-align: center;
+  text-decoration: none;
+  border-radius: 0px;
+  border: 2px solid rgba(188, 210, 225, 0.5);
+  margin: 0px 2px 5px 2px;
+  margin: 5px;
+  padding: 5px;
+}
+
+@media -sass-debug-info{filename{font-family:file\:\/\/H\:\/Xampp5_6_15\/htdocs\/shirleymedia\/sites\/all\/themes\/custom\/spaco3\/sass\/styles\.custom\.scss}line{font-family:\00003257}}
+#pe-schedule-body-wrapper {
+  max-width: 1140px;
+  background: white;
+  margin: 0 10px 5px;
+  box-shadow: 0 0 2px 1px rgba(0, 0, 0, 0.2);
+  border: 1px solid transparent;
+  margin: 5px 5px 5px 5px;
+  padding-bottom: 5px;
+}
+
+@media -sass-debug-info{filename{font-family:file\:\/\/H\:\/Xampp5_6_15\/htdocs\/shirleymedia\/sites\/all\/themes\/custom\/spaco3\/sass\/styles\.custom\.scss}line{font-family:\00003267}}
+#pe-schedule-body-wrapper h2 {
+  color: darkslateblue;
+  text-align: center;
+  background-color: rgba(188, 210, 225, 0.5);
+  border-radius: 4px 4px 0 0;
+  padding: 8px 30px;
+  margin: 0 auto 5px;
+}
+
+@media -sass-debug-info{filename{font-family:file\:\/\/H\:\/Xampp5_6_15\/htdocs\/shirleymedia\/sites\/all\/themes\/custom\/spaco3\/sass\/styles\.custom\.scss}line{font-family:\00003276}}
+.schedule-summary ul li {
+  margin-left: 0px;
+  margin-right: 0px;
+  list-style: none;
+  list-style-image: none;
+  list-style-position: outside;
+  box-sizing: border-box;
+  display: block;
+  float: left;
+  font-size: .8em;
+  padding: 10px 0px;
+}
+
+@media -sass-debug-info{filename{font-family:file\:\/\/H\:\/Xampp5_6_15\/htdocs\/shirleymedia\/sites\/all\/themes\/custom\/spaco3\/sass\/styles\.custom\.scss}line{font-family:\00003295}}
+#pe-vod-menu-wrapper {
+  max-width: 1140px;
+  background: white;
+  margin: 0 10px 5px;
+  box-shadow: 0 0 2px 1px rgba(0, 0, 0, 0.2);
+  border: 1px solid transparent;
+  margin: 10px 5px 5px 5px;
+  padding-bottom: 0px;
+}
+
+@media -sass-debug-info{filename{font-family:file\:\/\/H\:\/Xampp5_6_15\/htdocs\/shirleymedia\/sites\/all\/themes\/custom\/spaco3\/sass\/styles\.custom\.scss}line{font-family:\00003305}}
+#pe-vod-menu-wrapper h2 {
+  color: darkslateblue;
+  text-align: center;
+  background-color: rgba(188, 210, 225, 0.5);
+  border-radius: 4px 4px 0 0;
+  padding: 8px 30px;
+  margin: 0 auto 3px;
+}
+
+@media -sass-debug-info{filename{font-family:file\:\/\/H\:\/Xampp5_6_15\/htdocs\/shirleymedia\/sites\/all\/themes\/custom\/spaco3\/sass\/styles\.custom\.scss}line{font-family:\00003314}}
+.sf-menu.sf-style-blue a, .sf-menu.sf-style-blue span.nolink {
+  margin: 0px;
+  padding: 0em 1em;
+}
+
+@media -sass-debug-info{filename{font-family:file\:\/\/H\:\/Xampp5_6_15\/htdocs\/shirleymedia\/sites\/all\/themes\/custom\/spaco3\/sass\/styles\.custom\.scss}line{font-family:\00003323}}
+#pe-vod-catagories {
+  margin: 10px;
+  max-width: 1140px;
+  border-style: solid;
+  border-radius: 4px;
+  border-width: 2px;
+  border-color: blue;
+}
+
+@media -sass-debug-info{filename{font-family:file\:\/\/H\:\/Xampp5_6_15\/htdocs\/shirleymedia\/sites\/all\/themes\/custom\/spaco3\/sass\/styles\.custom\.scss}line{font-family:\00003332}}
+#pe-vod-catagories h2 {
+  font-size: 1.1em;
+  text-align: center;
+}
+
+@media -sass-debug-info{filename{font-family:file\:\/\/H\:\/Xampp5_6_15\/htdocs\/shirleymedia\/sites\/all\/themes\/custom\/spaco3\/sass\/styles\.custom\.scss}line{font-family:\00003337}}
+#pe-vod-catagories a {
+  font-size: 1em;
+  text-align: center;
+  text-decoration: none;
+  border-radius: 0px;
+  border: 2px solid #d0a116;
+  margin: 0px 2px 5px 2px;
+}
+
+@media -sass-debug-info{filename{font-family:file\:\/\/H\:\/Xampp5_6_15\/htdocs\/shirleymedia\/sites\/all\/themes\/custom\/spaco3\/sass\/styles\.custom\.scss}line{font-family:\00003351}}
+.meetings-view-title h2 {
+  font-size: 1.1em;
+}
+
+@media -sass-debug-info{filename{font-family:file\:\/\/H\:\/Xampp5_6_15\/htdocs\/shirleymedia\/sites\/all\/themes\/custom\/spaco3\/sass\/styles\.custom\.scss}line{font-family:\00003354}}
+.cablecast-show {
+  margin: 0 auto;
+}
+
+@media -sass-debug-info{filename{font-family:file\:\/\/H\:\/Xampp5_6_15\/htdocs\/shirleymedia\/sites\/all\/themes\/custom\/spaco3\/sass\/styles\.custom\.scss}line{font-family:\00003358}}
+.cablecast-show ul {
+  padding-left: 4%;
+}
+
+@media -sass-debug-info{filename{font-family:file\:\/\/H\:\/Xampp5_6_15\/htdocs\/shirleymedia\/sites\/all\/themes\/custom\/spaco3\/sass\/styles\.custom\.scss}line{font-family:\00003362}}
+.cablecast-show ul li {
+  padding: .5%;
+  margin-top: -10px;
+  margin-bottom: 15px;
+  margin-left: 5px;
+  margin-right: 5px;
+  list-style: none;
+  list-style-image: none;
+  list-style-position: outside;
+  box-sizing: border-box;
+  display: block;
+  float: left;
+  width: 21.5%;
+}
+
+@media -sass-debug-info{filename{font-family:file\:\/\/H\:\/Xampp5_6_15\/htdocs\/shirleymedia\/sites\/all\/themes\/custom\/spaco3\/sass\/styles\.custom\.scss}line{font-family:\00003378}}
+.thumbnail {
+  box-shadow: 0 0 2px 1px rgba(0, 0, 0, 0.2);
+  border: 1px solid transparent;
+}
+
+@media -sass-debug-info{filename{font-family:file\:\/\/H\:\/Xampp5_6_15\/htdocs\/shirleymedia\/sites\/all\/themes\/custom\/spaco3\/sass\/styles\.custom\.scss}line{font-family:\00003385}}
+.thumbnail-title h6 {
+  margin-top: 0;
+  margin-bottom: 0;
+  height: 100px;
+  text-align: center;
+  font-size: .8em;
+}
+
+@media -sass-debug-info{filename{font-family:file\:\/\/H\:\/Xampp5_6_15\/htdocs\/shirleymedia\/sites\/all\/themes\/custom\/spaco3\/sass\/styles\.custom\.scss}line{font-family:\00003393}}
+.thumbnail-vod {
+  margin-top: 0;
+  margin-bottom: 10px;
+  font-weight: bold;
+  text-align: center;
+  font-size: .8em;
+}
+
+@media -sass-debug-info{filename{font-family:file\:\/\/H\:\/Xampp5_6_15\/htdocs\/shirleymedia\/sites\/all\/themes\/custom\/spaco3\/sass\/styles\.custom\.scss}line{font-family:\00003402}}
+div.more-link {
+  margin: 0;
+  float: left;
+}
+
+@media -sass-debug-info{filename{font-family:file\:\/\/H\:\/Xampp5_6_15\/htdocs\/shirleymedia\/sites\/all\/themes\/custom\/spaco3\/sass\/styles\.custom\.scss}line{font-family:\00003407}}
+#mini-panel-footer_mini_panel {
+  background-color: #D0A116;
+}
+
+@media -sass-debug-info{filename{font-family:file\:\/\/H\:\/Xampp5_6_15\/htdocs\/shirleymedia\/sites\/all\/themes\/custom\/spaco3\/sass\/styles\.custom\.scss}line{font-family:\00003411}}
+.footer-meetings h2 {
+  font-size: 1.4em;
+}
+
+@media -sass-debug-info{filename{font-family:file\:\/\/H\:\/Xampp5_6_15\/htdocs\/shirleymedia\/sites\/all\/themes\/custom\/spaco3\/sass\/styles\.custom\.scss}line{font-family:\00003415}}
+.footer-meetings a {
+  font-size: .9em;
+}
+
+@media -sass-debug-info{filename{font-family:file\:\/\/H\:\/Xampp5_6_15\/htdocs\/shirleymedia\/sites\/all\/themes\/custom\/spaco3\/sass\/styles\.custom\.scss}line{font-family:\00003419}}
+.footer-about h2 {
+  font-size: 1.4em;
+}
+
+@media -sass-debug-info{filename{font-family:file\:\/\/H\:\/Xampp5_6_15\/htdocs\/shirleymedia\/sites\/all\/themes\/custom\/spaco3\/sass\/styles\.custom\.scss}line{font-family:\00003423}}
+.footer-about a {
+  font-size: .9em;
+}
+
+@media -sass-debug-info{filename{font-family:file\:\/\/H\:\/Xampp5_6_15\/htdocs\/shirleymedia\/sites\/all\/themes\/custom\/spaco3\/sass\/styles\.custom\.scss}line{font-family:\00003428}}
+#footer {
+  background-color: #1c313f;
+  color: #b0ccd4;
+}

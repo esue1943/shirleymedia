@@ -1,0 +1,540 @@
+<?php
+
+function cablecast_node_info() {
+  $items = array(
+    'cablecast_show' => array(
+      'name' => t('Cablecast Show'),
+      'base' => 'node_content',
+      'description' => t('Represents a show from a cablecast server.'),
+      'has_title' => TRUE,
+      'title_label' => t('Title'),
+      'help' => '',
+      'locked' => TRUE,
+    ),
+    'cablecast_project' => array(
+      'name' => t('Cablecasst Project'),
+      'base' => 'node_content',
+      'description' => t('Represents a Cablecast Project.'),
+      'has_title' => TRUE,
+      'title_label' => t('Name'),
+      'help' => '',
+      'locked' => TRUE,
+    ),
+    'cablecast_channel' => array(
+      'name' => t('Cablecast Channel'),
+      'base' => 'node_content',
+      'description' => t('Represents a Cablecast Channel'),
+      'has_title' => TRUE,
+      'title_label' => t('Name'),
+      'help' => '',
+      'locked' => TRUE,
+    ),
+    'cablecast_schedule_item' => array(
+      'name' => t('Cablecast Schedule Item'),
+      'base' => 'node_content',
+      'description' => t('Represents the airing of a show on a channel at a given time'),
+      'has_title' => TRUE,
+      'title_label' => t('Title'),
+      'help' => '',
+      'locked' => TRUE,
+    ),
+  );
+  return $items;
+}
+
+function cablecast_menu() {
+  $items = array();
+  $items['admin/config/cablecast'] = array(
+    'title' => 'Cablecast Configuration',
+    'description' => 'Configuration for the Cablecast module.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('cablecast_configure_form'),
+    'access arguments' => array('administer users'),
+    'type' => MENU_NORMAL_ITEM,
+  );
+  return $items;
+}
+
+function cablecast_configure_form($form, &$form_state) {
+  // Text Field for Cablecast Server URL
+  $form['cablecast_server_url'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Cablecast Server URL'),
+    '#description' => t('The publicly available url of your Cablecast server.'),
+    '#size' => 40,
+    '#maxlength' => 255,
+    '#required' => TRUE,
+    '#default_value' => variable_get('cablecast_server_url', 'http://demo.trms.com'),
+  );
+
+  $form['cablecast_location_id'] = array(
+    '#type' => 'textfield',
+    '#size' => 3,
+    '#title' => t('Cablecast Location ID'),
+    '#required' => TRUE,
+    '#description' => t('The LocationID of the Cablecast Location you would like to sync from.'),
+    '#default_value' => variable_get('cablecast_location_id', 22),
+  );
+
+  return system_settings_form($form);
+}
+
+function cablecast_cron() {
+  if($cablecast_server_uri = variable_get('cablecast_server_url', 0)) {
+
+    _cablecast_sync_channels();
+    _cablecast_sync_projects();
+    _cablecast_sync_shows();
+    _cablecast_sync_schedule();
+  }
+}
+
+function _cablecast_sync_schedule() {
+  $client = _cablecast_create_client();
+  watchdog('Cablecast', 'Syncing Schedule');
+
+  $channels = $client->GetChannels();
+  $channels = $channels->GetChannelsResult->Channel;
+
+  // This shouldn't happen, but its possible there are no channels
+  if($channels == null) {
+    return;
+  }
+
+  //Guard against 1 channel
+  if(!is_array($channels)) {
+    $channels = array($channels);
+  }
+
+  $start_time = date('Y-m-d\T00:00:00', time() - 60*60*24*3);
+
+  $sql = 'SELECT entity_id FROM {field_data_cablecast_schedule_start_time} cc WHERE cc.cablecast_schedule_start_time_value > :start_time';
+  $schedule_nids = db_query($sql, array(':start_time' => $start_time))->fetchCol();
+  $schedule_nids = array_map('intval', $schedule_nids);
+
+  foreach($channels as $channel) {
+    //We'll need the channel nid later
+    $channel_nid = _cablecast_get_channel_nid($channel->ChannelID);
+
+    $params = array(
+      'ChannelID' => $channel->ChannelID,
+      'FromDate' =>  date('Y-m-d\T00:00:00', time() - 60*60*24*3),
+      'ToDate'  =>  date('Y-m-d\T23:59:59', time() + 60*60*24*30),
+      'restrictToShowID'  =>  0,
+    );
+
+    $schedule_events = $client->GetScheduleInformation($params);
+
+    if(isset($schedule_events->GetScheduleInformationResult->ScheduleInfo) == false) {
+      continue; // No results
+    }
+
+    $schedule_events = $schedule_events->GetScheduleInformationResult->ScheduleInfo;
+
+    // We need to normalize to an array
+    if(!is_array($schedule_events)) {
+        $schedule_events = array($schedule_events);
+    }
+
+    foreach($schedule_events as $run) {
+
+      //Check if Show even exists. If it doesn't well sync this later once we have the show
+      $show_nid = _cablecast_get_show_nid($run->ShowID);
+      if($show_nid == false) {
+        continue;
+      }
+
+      $sql = 'SELECT entity_id FROM {field_data_cablecast_schedule_item_id} cc WHERE cc.cablecast_schedule_item_id_value = :run_id';
+      $nid = db_query($sql, array(':run_id' => $run->ScheduleID))->fetchField();
+
+      if($nid == false) {
+        $node = new stdClass();
+        $node->type = 'cablecast_schedule_item';
+        $node->language = LANGUAGE_NONE;
+        $node->uid =1;
+
+        node_object_prepare($node);
+
+        $node->title = $run->ShowTitle;
+
+      } else {
+        $node = node_load($nid, NULL, TRUE);
+        if($key = array_search($nid, $schedule_nids))  {
+          unset($schedule_nids[$key]);
+        }
+      }
+
+      if($nid == FALSE || _cablecast_is_run_changed($node, $run, $channel->ChannelID)) {
+
+        $node->cablecast_schedule_item_id['und'][0]['value'] = $run->ScheduleID;
+        $node->cablecast_schedule_start_time['und'][0]['value'] = gmdate('Y-m-d\TH:i:s',
+          strtotime($run->StartTime));
+        $node->cablecast_schedule_end_time['und'][0]['value'] = gmdate('Y-m-d\TH:i:s',
+          strtotime($run->EndTime));
+        $node->cablecast_schedule_show_id['und'][0]['value'] = $run->ShowID;
+        $node->cablecast_schedule_channel_id['und'][0]['value'] = $channel->ChannelID;
+        $node->cablecast_show_reference['und'][0]['target_id'] = (int)$show_nid;
+        $node->cablecast_channel_reference['und'][0]['target_id'] = $channel_nid;
+
+        node_save($node);
+      }
+    }
+
+  }
+  // Remove deleted runs
+  node_delete_multiple($schedule_nids);
+}
+
+function _cablecast_sync_channels() {
+  watchdog('Cablecast', 'Syncing Channels');
+  $client = _cablecast_create_client();
+  $channels = $client->GetChannels();
+  $channels = $channels->GetChannelsResult->Channel;
+  if(!is_array($channels)) {
+    $channels = array($channels);
+  }
+
+  foreach($channels as $channel) {
+    //See if we already have the channel in drupal
+    $sql = 'SELECT entity_id FROM {field_data_cablecast_channel_id} cc WHERE cc.cablecast_channel_id_value = :channel_id';
+    $nid = db_query($sql, array(':channel_id' => $channel->ChannelID))->fetchField();
+
+    if($nid == false) {
+      $node = new stdClass();
+      $node->type = 'cablecast_channel';
+      $node->language = LANGUAGE_NONE;
+      $node->uid = 1;
+
+      node_object_prepare($node);
+      // Only set the node title here. This way the user can update it if they want.
+      // We will always update the actual channel name on sync.
+      $node->title = $channel->Name;
+    } else {
+      $node = node_load($nid);
+    }
+
+    if(_cablecast_is_channel_changed($node, $channel)) {
+      $node->cablecast_channel_id['und'][0]['value'] = $channel->ChannelID;
+      $node->cablecast_channel_name['und'][0]['value'] = $channel->Name;
+      node_save($node);
+    }
+  }
+}
+
+function _cablecast_sync_projects() {
+  $client = _cablecast_create_client();
+  watchdog('Cablecast', 'Syncing Projects');
+  //Projects don't have a last modified date.
+  //So we need to manually see if they have changed by checking properties
+
+  //We need a channelID. This will only work for single location systems. We will make it more
+  //robust in the future.
+  $channels = $client->GetChannels();
+  $channels = $channels->GetChannelsResult->Channel;
+  if(!is_array($channels)) {
+    $channels = array($channels);
+  }
+
+  $channel_id = $channels[0]->ChannelID;
+
+  $projects = $client->GetProjects(array("ChannelID" => $channel_id));
+  $projects = $projects->GetProjectsResult->Project;
+  if(!is_array($projects)) {
+    $projects = array($projects);
+  }
+
+  foreach($projects as $project) {
+    //See if we already have the project in drupal
+    $sql = 'SELECT entity_id FROM {field_data_cablecast_project_id} cc WHERE cc.cablecast_project_id_value = :project_id';
+    $nid = db_query($sql, array(':project_id' => $project->ProjectID))->fetchField();
+
+
+    if($nid == false) {
+      $node = new stdClass();
+      $node->type = 'cablecast_project';
+
+      node_object_prepare($node);
+      $node->language = LANGUAGE_NONE;
+      $node->uid = 1;
+
+      //We only set the title and body on first creation
+      //This allows users to use these fields for what they want in drupal
+      //without values getting overridden on update
+      $node->title = $project->Name;
+      $node->body['und'][0]['value'] = $project->Description;
+    }
+    else {
+      $node = node_load($nid);
+    }
+
+    if(_cablecast_is_project_changed($node, $project)) {
+      $node->cablecast_project_id['und'][0]['value'] = $project->ProjectID;
+      $node->cablecast_project_name['und'][0]['value'] = $project->Name;
+      $node->cablecast_project_description['und'][0]['value'] = $project->Description;
+
+      node_save($node);
+    }
+  }
+}
+
+function _cablecast_extract_id($id, $records) {
+    $item = null;
+    foreach($records as $record) {
+        if ($id == $record->id) {
+            $item = $record;
+            break;
+        }
+    }
+    return $item;
+}
+
+function _cablecast_calculate_trt($show, $reels_payload) {
+    $reels = [];
+    foreach($show->reels as $reel_id) {
+        $reels[] = _cablecast_extract_id($reel_id, $reels_payload);
+    }
+    $trt = 0;
+    foreach($reels as $reel) {
+        $trt += $reel->length;
+    }
+    return $trt;
+}
+
+function _cablecast_get_shows_payload() {
+  $cablecast_last_sync = strtotime(variable_get("cablecast_last_sync", "1900-01-01T12:00:00"));
+  $cablecast_last_sync = date("Y-m-d\TH:i:s", $cablecast_last_sync);
+  $cablecast_sync_index = variable_get("cablecast_sync_index", 0);
+  $cablecast_server_uri = variable_get('cablecast_server_url', 0);
+
+  $json_search = "{\"savedShowSearch\":{\"query\":{\"groups\":[{\"orAnd\":\"and\",\"filters\":[{\"field\":\"lastModified\",\"operator\":\"greaterThan\",\"searchValue\":\"$cablecast_last_sync\"}]}],\"sortOptions\":[{\"field\":\"lastModified\",\"descending\":false},{\"field\":\"title\",\"descending\":false}]},\"name\":\"\"}}";
+
+  $opts = array('http' =>
+      array(
+          'method'  => 'POST',
+          'header'  => 'Content-Type: application/json',
+          'content' => $json_search,
+          'ignore_errors' => true
+      )
+  );
+  $context = stream_context_create($opts);
+  $result = file_get_contents("$cablecast_server_uri/cablecastapi/v1/shows/search/advanced", false, $context);
+  $result = json_decode($result);
+
+
+  $total_result_count = count($result->savedShowSearch->results);
+  if ($total_result_count <= $cablecast_sync_index) {
+    $cablecast_sync_index = 0;
+    variable_set("cablecast_sync_index", $cablecast_sync_index);
+  }
+
+  $ids = array_slice($result->savedShowSearch->results, $cablecast_sync_index, 100);
+  $processing_result_count = count($ids);
+  $end_index = $cablecast_sync_index + $processing_result_count;
+
+  variable_set("cablecast_sync_total_result_count", $total_result_count);
+
+  $id_query = "";
+  foreach ($ids as $id) {
+    $id_query .= "&ids[]=$id";
+  }
+
+  $url = "$cablecast_server_uri/cablecastapi/v1/shows?page_size=100&include=reel,vod,vodtransaction,project,producer$id_query";
+
+  $shows_json = file_get_contents($url);
+  $shows_payload = json_decode($shows_json);
+
+  return $shows_payload;
+}
+
+function _cablecast_sync_shows() {
+  watchdog('Cablecast', 'Syncing Shows');
+  try {
+      $cablecast_server_uri = variable_get('cablecast_server_url', 0);
+      $producers_json = file_get_contents("$cablecast_server_uri/cablecastapi/v1/producers");
+      $producers = json_decode($producers_json);
+      $projects_json = file_get_contents("$cablecast_server_uri/cablecastapi/v1/projects");
+      $projects = json_decode($projects_json);
+      $categories_json = file_get_contents("$cablecast_server_uri/cablecastapi/v1/categories");
+      $categories = json_decode($categories_json);
+      $payload = _cablecast_get_shows_payload();
+      $meta = $payload->meta;
+
+      $cablecast_last_sync = strtotime(variable_get("cablecast_last_sync", "1900-01-01T12:00:00"));
+      $cablecast_sync_index = variable_get("cablecast_sync_index", 0);
+      $cablecast_sync_total_result_count = variable_get("cablecast_sync_total_result_count", 0);
+
+      foreach($payload->shows as $show) {
+          $trt = _cablecast_calculate_trt($show, $payload->reels);
+          $sql = 'SELECT entity_id FROM {field_data_cablecast_show_id} cc WHERE cc.cablecast_show_id_value = :show_id';
+          $nid = db_query($sql,
+            array(
+              ':show_id' => $show->id,
+            )
+          )->fetchField();
+
+          if($nid == false) {
+            $node = new stdClass();
+            $node->type = 'cablecast_show';
+
+            node_object_prepare($node);
+
+            $node->language = LANGUAGE_NONE;
+            $node->uid =1;
+
+          }
+          // Load node for shows that do exist
+          else {
+            $node = node_load($nid);
+          }
+
+          $node->title = $show->cgTitle;
+          $node->cablecast_show_id['und'][0]['value'] = $show->id;
+          $node->cablecast_show_title['und'][0]['value'] = $show->title;
+          $node->cablecast_show_cg_title['und'][0]['value'] = $show->cgTitle;
+          $node->cablecast_show_comments['und'][0]['value'] = $show->comments;
+          $node->cablecast_show_trt['und'][0]['value'] = $trt;
+
+          $node->cablecast_show_event_date['und'][0]['value'] = gmdate('Y-m-d\TH:i:s',
+          strtotime($show->eventDate));
+          $node->cablecast_show_last_modified['und'][0]['value'] = gmdate('Y-m-d\TH:i:s',
+          strtotime($show->lastModified));
+
+          if (count($show->vods) > 0) {
+              $vod = _cablecast_extract_id($show->vods[0], $payload->vods);
+              $transaction = _cablecast_extract_id($vod->lastTransaction, $payload->vodTransactions);
+              if ($transaction->transactionType == 5) {
+                $node->cablecast_show_vod_url['und'][0]['value'] = $vod->url;
+              } else {
+                $node->cablecast_show_vod_url['und'] = array();
+              }
+          }
+
+          if ($show->producer > 0) {
+            $producer = _cablecast_extract_id($show->producer, $producers->producers);
+            $node->cablecast_show_producer['und'][0]['value'] = $producer->name;
+          }
+
+          if ($show->project > 0) {
+            $node->cablecast_project_reference['und'][0]['target_id'] = _cablecast_get_project_nid($show->project);
+          }
+          //Taxonomy
+          if($show->category > 0) {
+            $category = _cablecast_extract_id($show->category, $categories->categories);
+            $node->cablecast_category['und'][]['tid'] = _cablecast_get_category_term($category->name);
+          }
+
+          //Give Other modules a chance to extract data, specifically custom fields
+          module_invoke_all('cablecast_show_presave', $node, $show);
+          node_save($node);
+
+          $cablecast_sync_index++;
+          variable_set("cablecast_sync_index", $cablecast_sync_index);
+
+          $show_last_modified_time = strtotime($show->lastModified);
+          if ($show_last_modified_time > $cablecast_last_sync) {
+            $cablecast_last_sync = $show_last_modified_time;
+          }
+
+      }
+
+      if ($cablecast_sync_index >= $cablecast_sync_total_result_count) {
+        variable_set("cablecast_sync_index", 0);
+        variable_set("cablecast_sync_total_result_count", 0);
+        variable_set("cablecast_last_sync", date("Y-m-d\TH:i:s", $cablecast_last_sync));
+      }
+  }
+  catch(SoapFault $fault)  {
+    watchdog("Cablecast", "Communicating to server caused the following error: ".$fault->faultstring);
+  }
+}
+
+function _cablecast_get_category_term($category) {
+  $vid = variable_get('cablecast_categories_vid', false);
+  if($vid == false) {
+    throw new Exception("Could not find Cablecast Cateogory Taxonomy", 1);
+
+  }
+
+  $terms = taxonomy_get_term_by_name($category);
+  foreach ($terms as $term) {
+    if($term->vid == $vid) {
+      return $term->tid;
+    }
+  }
+
+  //Term doesn't exist create it
+  $new_term = array(
+    'vid' => $vid,
+    'name' => $category,
+  );
+  $new_term = (object) $new_term;
+  taxonomy_term_save($new_term);
+
+  return $new_term->tid;
+}
+
+function _cablecast_is_project_changed($node, $project) {
+  return !(isset($node->cablecast_project_name) &&
+           isset($node->cablecast_project_description) &&
+           $node->cablecast_project_name['und'][0]['value'] == $project->Name &&
+           $node->cablecast_project_description['und'][0]['value'] == $project->Description
+          );
+}
+
+function _cablecast_get_project_nid($project_id) {
+  $sql = 'SELECT entity_id FROM {field_data_cablecast_project_id} cc WHERE cc.cablecast_project_id_value = :project_id';
+    $nid = db_query($sql, array(':project_id' => $project_id))->fetchField();
+
+  return (int)$nid;
+}
+
+function _cablecast_get_show_nid($show_id) {
+  $sql = 'SELECT entity_id FROM {field_data_cablecast_show_id} cc WHERE cc.cablecast_show_id_value = :show_id';
+    $nid = db_query($sql, array(':show_id' => $show_id))->fetchField();
+
+  return $nid;
+}
+
+function _cablecast_get_channel_nid($channel_id) {
+  $sql = 'SELECT entity_id FROM {field_data_cablecast_channel_id} cc WHERE cc.cablecast_channel_id_value = :channel_id';
+    $nid = db_query($sql, array(':channel_id' => $channel_id))->fetchField();
+
+  return (int)$nid;
+}
+
+function _cablecast_is_channel_changed($node, $channel) {
+  return !(isset($node->cablecast_channel_id) &&
+           isset($node->cablecast_channel_name) &&
+           $node->cablecast_channel_id['und'][0]['value'] == $channel->ChannelID &&
+           $node->cablecast_channel_name['und'][0]['value'] == $channel->Name
+    );
+}
+
+function _cablecast_is_run_changed($node, $run, $channel_id) {
+  // We need to convert the dates so they can be compared.
+  // We are going to assume that the web server and cablecast
+  // server are set to the same time zone
+  $nodeStart = new DateTime($node->cablecast_schedule_start_time['und'][0]['value'],
+                            new DateTimeZone('UTC'));
+  $runStart = new DateTime($run->StartTime,
+                            new DateTimeZone($node->cablecast_schedule_start_time['und'][0]['timezone']));
+  $nodeEnd = new DateTime($node->cablecast_schedule_end_time['und'][0]['value'],
+                            new DateTimeZone('UTC'));
+  $runEnd = new DateTime($run->EndTime,
+                            new DateTimeZone($node->cablecast_schedule_end_time['und'][0]['timezone']));
+
+  return !(isset($node->cablecast_schedule_item_id) &&
+           isset($node->cablecast_schedule_show_id) &&
+           isset($node->cablecast_schedule_channel_id) &&
+           $node->cablecast_schedule_item_id['und'][0]['value'] == $run->ScheduleID &&
+           $node->cablecast_schedule_show_id['und'][0]['value'] == $run->ShowID &&
+           $node->cablecast_schedule_channel_id['und'][0]['value'] == $channel_id &&
+           $nodeStart == $runStart &&
+           $nodeEnd == $runEnd);
+}
+
+function _cablecast_create_client() {
+  $cablecast_server_uri = variable_get('cablecast_server_url');
+  $cablecast_server_uri = $cablecast_server_uri . "/CablecastWS/CablecastWS.asmx?WSDL";
+  return new SoapClient($cablecast_server_uri, array('cache_wsdl' => 0));
+}
